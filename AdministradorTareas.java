@@ -10,8 +10,11 @@ public class AdministradorTareas extends JFrame {
     private DefaultTableModel modeloTabla;
     private GestorProcesos gestor;
     private JButton botonEjecutar;
+    private JButton botonVerProcesosEjecutados;
     private JLabel labelMemoriaDisponible;
+    private JProgressBar barraMemoria;
 
+    @SuppressWarnings("unused")
     public AdministradorTareas() {
         setTitle("Administrador de Tareas");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,18 +44,33 @@ public class AdministradorTareas extends JFrame {
 
         // Botón de ejecutar
         botonEjecutar = new JButton("Ejecutar");
-        botonEjecutar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ejecutarProceso();
-            }
-        });
+        botonEjecutar.setBackground(new Color(34, 139, 34)); // Verde
+        botonEjecutar.setForeground(Color.WHITE); // Letras blancas
+        botonEjecutar.addActionListener(e -> ejecutarProceso());
+
+        // Botón para ver procesos ejecutados
+        botonVerProcesosEjecutados = new JButton("Ver Procesos Ejecutados");
+        botonVerProcesosEjecutados.setBackground(new Color(34, 139, 34)); // Verde
+        botonVerProcesosEjecutados.setForeground(Color.WHITE); // Letras blancas
+        botonVerProcesosEjecutados.addActionListener(e -> mostrarProcesosEjecutados());
+
+        // Barra de memoria disponible
+        barraMemoria = new JProgressBar(0, 100);
+        barraMemoria.setForeground(Color.RED); // Barra de color rojo
+        actualizarBarraMemoria();
 
         // Etiqueta de memoria disponible
         labelMemoriaDisponible = new JLabel("Memoria disponible: " + gestor.getRamDisponible() + " GB");
         JPanel panelInferior = new JPanel(new BorderLayout());
         panelInferior.add(labelMemoriaDisponible, BorderLayout.WEST);
-        panelInferior.add(botonEjecutar, BorderLayout.EAST);
+        panelInferior.add(barraMemoria, BorderLayout.CENTER);
+
+        // Agregar los botones al panel inferior
+        JPanel panelBotones = new JPanel();
+        panelBotones.add(botonVerProcesosEjecutados);
+        panelBotones.add(botonEjecutar);
+
+        panelInferior.add(panelBotones, BorderLayout.EAST);
 
         add(scrollPane, BorderLayout.CENTER);
         add(panelInferior, BorderLayout.SOUTH);
@@ -61,40 +79,103 @@ public class AdministradorTareas extends JFrame {
     private void cargarDatosTabla() {
         for (Proceso proceso : gestor.getProcesos()) {
             modeloTabla.addRow(new Object[]{
-                proceso.getNombre(),
-                proceso.getCpu(),
-                proceso.getMemoria(),
-                proceso.getDisco(),
-                proceso.getTiempo(),
-                "En línea" // Estado inicial
+                    proceso.getNombre(),
+                    proceso.getCpu(),
+                    proceso.getMemoria(),
+                    proceso.getDisco(),
+                    proceso.getTiempo(),
+                    "En línea"
             });
         }
     }
 
     private void ejecutarProceso() {
-        int filaSeleccionada = tablaProcesos.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un proceso para ejecutar");
+        int[] filasSeleccionadas = tablaProcesos.getSelectedRows();
+        if (filasSeleccionadas.length == 0) {
+            JOptionPane.showMessageDialog(this, "Seleccione al menos un proceso para ejecutar");
             return;
         }
 
-        Proceso proceso = gestor.getProcesos().get(filaSeleccionada);
-        if (gestor.ejecutarProceso(proceso)) {
-            modeloTabla.setValueAt("Ejecutando", filaSeleccionada, 5);
-            labelMemoriaDisponible.setText("Memoria disponible: " + gestor.getRamDisponible() + " GB");
+        for (int fila : filasSeleccionadas) {
+            Proceso proceso = gestor.getProcesos().get(fila);
 
-            // Simular tiempo de ejecución
-            new Timer(proceso.getTiempo() * 1000, new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    gestor.liberarRecursos(proceso);
-                    modeloTabla.setValueAt("Finalizado", filaSeleccionada, 5);
-                    labelMemoriaDisponible.setText("Memoria disponible: " + gestor.getRamDisponible() + " GB");
-                }
-            }).start();
-        } else {
-            JOptionPane.showMessageDialog(this, "Recursos insuficientes para ejecutar este proceso");
+            if (proceso.getEstado().equals("Ejecutando") || proceso.getEstado().equals("Finalizado")) {
+                JOptionPane.showMessageDialog(this, "El proceso '" + proceso.getNombre() + "' ya está ejecutándose o finalizado.");
+                continue;
+            }
+
+            if (proceso.getMemoria() > gestor.getRamDisponible()) {
+                JOptionPane.showMessageDialog(this, "Recursos insuficientes para ejecutar el proceso: " + proceso.getNombre());
+                continue;
+            }
+
+            if (gestor.ejecutarProceso(proceso)) {
+                modeloTabla.setValueAt("Ejecutando", fila, 5);
+                proceso.setEstado("Ejecutando");
+                actualizarEstadoMemoria();
+
+                new Timer(proceso.getTiempo() * 1000, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        gestor.liberarRecursos(proceso);
+                        modeloTabla.setValueAt("Finalizado", fila, 5);
+                        proceso.setEstado("Finalizado");
+                        actualizarEstadoMemoria();
+                        verificarProcesosFinalizados();
+                    }
+                }).start();
+            }
         }
+    }
+
+    private void mostrarProcesosEjecutados() {
+        StringBuilder mensaje = new StringBuilder("Procesos ejecutados:\n");
+        for (Proceso proceso : gestor.getProcesosEjecutados()) {
+            // Mostrar los detalles del proceso
+            mensaje.append("ID: ").append(proceso.getId()).append("\n")
+                   .append("Aplicación: ").append(proceso.getNombre()).append("\n")
+                   .append("Tiempo de llegada: ").append(proceso.getTiempoLlegada()).append("\n")
+                   .append("Tiempo de salida: ").append(proceso.getTiempoSalida()).append("\n")
+                   .append("Prioridad: ").append(proceso.getPrioridad()).append("\n\n");
+        }
+        JOptionPane.showMessageDialog(this, mensaje.toString(), "Procesos Ejecutados", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void actualizarEstadoMemoria() {
+        labelMemoriaDisponible.setText("Memoria disponible: " + gestor.getRamDisponible() + " GB");
+        actualizarBarraMemoria();
+    }
+
+    private void actualizarBarraMemoria() {
+        double ramDisponible = Math.max(0, gestor.getRamDisponible());
+        double ramTotal = gestor.getRamTotal();
+        int porcentajeUsado = (int) ((1 - (ramDisponible / ramTotal)) * 100);
+
+        barraMemoria.setValue(porcentajeUsado);
+        barraMemoria.setString("Uso de memoria: " + porcentajeUsado + "%");
+        barraMemoria.setStringPainted(true);
+    }
+
+    private void verificarProcesosFinalizados() {
+        boolean todosFinalizados = true;
+        for (Proceso proceso : gestor.getProcesos()) {
+            if (!proceso.getEstado().equals("Finalizado")) {
+                todosFinalizados = false;
+                break;
+            }
+        }
+
+        if (todosFinalizados) {
+            restaurarMemoria();
+        }
+    }
+
+    private void restaurarMemoria() {
+        gestor.setRamDisponible(gestor.getRamTotal());
+        SwingUtilities.invokeLater(() -> {
+            actualizarEstadoMemoria();
+            JOptionPane.showMessageDialog(AdministradorTareas.this, "Toda la memoria ha sido restaurada.");
+        });
     }
 
     public static void main(String[] args) {
@@ -111,33 +192,29 @@ class CustomCellRenderer extends DefaultTableCellRenderer {
                                                    boolean hasFocus, int row, int column) {
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        // Limitar colores únicamente a la columna "Estado" (índice 5)
         if (column == 5) {
             String estado = (String) value;
             switch (estado) {
                 case "En línea":
-                    c.setBackground(new Color(200, 255, 200)); // Verde claro
+                    c.setBackground(new Color(200, 255, 200));
                     break;
                 case "Ejecutando":
-                    c.setBackground(new Color(255, 255, 200)); // Amarillo claro
+                    c.setBackground(new Color(255, 255, 200));
                     break;
                 case "Finalizado":
-                    c.setBackground(new Color(255, 200, 200)); // Rojo claro
+                    c.setBackground(new Color(255, 200, 200));
                     break;
                 default:
-                    c.setBackground(Color.WHITE); // Fondo blanco por defecto
+                    c.setBackground(Color.WHITE);
                     break;
             }
         } else if (isSelected) {
-            c.setBackground(new Color(173, 216, 230)); // Celeste pastel claro si está seleccionada
+            c.setBackground(new Color(173, 216, 230));
         } else {
-            c.setBackground(Color.WHITE); // Fondo blanco para otras celdas
+            c.setBackground(Color.WHITE);
         }
 
-        setForeground(Color.BLACK); // Texto negro para mejor contraste
+        setForeground(Color.BLACK);
         return c;
     }
 }
-
-
-
