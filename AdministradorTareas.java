@@ -30,19 +30,18 @@ public class AdministradorTareas extends JFrame {
         }
 
         // Crear modelo de tabla
-        String[] columnas = {"Nombre", "CPU (%)", "Memoria (MB)", "Disco (%)", "Tiempo (s)", "Estado"};
+        String[] columnas = {"Nombre", "CPU (%)", "Bloque de Memoria (MB)", "Disco (%)", "Tiempo (s)", "Estado"};
         modeloTabla = new DefaultTableModel(columnas, 0);
         tablaProcesos = new JTable(modeloTabla);
         tablaProcesos.setRowHeight(25);
 
-        // Añadir renderizador personalizado
+        // Añadir renderizador personalizado al sistema, en parte visual
         tablaProcesos.setDefaultRenderer(Object.class, new CustomCellRenderer());
 
         cargarDatosTabla();
-
         JScrollPane scrollPane = new JScrollPane(tablaProcesos);
 
-        // Botón de ejecutar
+        // Botón de ejecutar proceso
         botonEjecutar = new JButton("Ejecutar");
         botonEjecutar.setBackground(new Color(34, 139, 34)); // Verde
         botonEjecutar.setForeground(Color.WHITE); // Letras blancas
@@ -56,7 +55,7 @@ public class AdministradorTareas extends JFrame {
 
         // Barra de memoria disponible
         barraMemoria = new JProgressBar(0, 100);
-        barraMemoria.setForeground(Color.RED); // Barra de color rojo
+        barraMemoria.setForeground(Color.RED); // Barra de color naranja
         actualizarBarraMemoria();
 
         // Etiqueta de memoria disponible
@@ -76,6 +75,7 @@ public class AdministradorTareas extends JFrame {
         add(panelInferior, BorderLayout.SOUTH);
     }
 
+    //Parte visual de la tabla
     private void cargarDatosTabla() {
         for (Proceso proceso : gestor.getProcesos()) {
             modeloTabla.addRow(new Object[]{
@@ -89,6 +89,7 @@ public class AdministradorTareas extends JFrame {
         }
     }
 
+    //En caso de no seleccionar un proceso
     private void ejecutarProceso() {
         int[] filasSeleccionadas = tablaProcesos.getSelectedRows();
         if (filasSeleccionadas.length == 0) {
@@ -96,6 +97,7 @@ public class AdministradorTareas extends JFrame {
             return;
         }
 
+        //En casos que esten muchos, falten recursos, etc
         for (int fila : filasSeleccionadas) {
             Proceso proceso = gestor.getProcesos().get(fila);
 
@@ -128,6 +130,7 @@ public class AdministradorTareas extends JFrame {
         }
     }
 
+    //Panel visual de procesos ejecutados
     private void mostrarProcesosEjecutados() {
         StringBuilder mensaje = new StringBuilder("Procesos ejecutados:\n");
         for (Proceso proceso : gestor.getProcesosEjecutados()) {
@@ -141,11 +144,13 @@ public class AdministradorTareas extends JFrame {
         JOptionPane.showMessageDialog(this, mensaje.toString(), "Procesos Ejecutados", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    //Panel de memoria disponible
     private void actualizarEstadoMemoria() {
         labelMemoriaDisponible.setText("Memoria disponible: " + gestor.getRamDisponible() + " GB");
         actualizarBarraMemoria();
     }
 
+    //Actualizar memoria disponible en la barra
     private void actualizarBarraMemoria() {
         double ramDisponible = Math.max(0, gestor.getRamDisponible());
         double ramTotal = gestor.getRamTotal();
@@ -156,6 +161,7 @@ public class AdministradorTareas extends JFrame {
         barraMemoria.setStringPainted(true);
     }
 
+    //Verificar los procesos
     private void verificarProcesosFinalizados() {
         boolean todosFinalizados = true;
         for (Proceso proceso : gestor.getProcesos()) {
@@ -174,9 +180,10 @@ public class AdministradorTareas extends JFrame {
         gestor.setRamDisponible(gestor.getRamTotal());
         SwingUtilities.invokeLater(() -> {
             actualizarEstadoMemoria();
-            JOptionPane.showMessageDialog(AdministradorTareas.this, "Toda la memoria ha sido restaurada.");
         });
     }
+
+    //CORRER EL PROGRAMA
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -186,6 +193,7 @@ public class AdministradorTareas extends JFrame {
     }
 }
 
+//Modifcador de colores y cosas visuales de la tabla
 class CustomCellRenderer extends DefaultTableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
