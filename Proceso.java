@@ -6,12 +6,12 @@ public class Proceso {
     private double memoria;
     private double disco;
     private int tiempo;
-    private String estado; // Campo de estado
-    private int tiempoLlegada;  // Nuevo campo
-    private int tiempoSalida;   // Nuevo campo
-    private int prioridad;      // Nuevo campo
+    private String estado; 
+    private int tiempoLlegada;  
+    private int tiempoSalida;   
+    private int prioridad;      
 
-    // Constructor modificado para incluir los nuevos campos
+    // Constructor modificado para incluir los nuevos campos a futuro
     public Proceso(int id, String nombre, double cpu, double memoria, double disco, int tiempo, 
                    int tiempoLlegada, int prioridad) {
         this.id = id;
@@ -51,11 +51,12 @@ public class Proceso {
     }
 
     public String getEstado() {
-        return estado; // Método que devuelve el estado actual
+        return estado; 
     }
 
+    // Método para cambiar el estado del proceso
     public void setEstado(String estado) {
-        this.estado = estado; // Método para cambiar el estado del proceso
+        this.estado = estado; 
     }
 
     public int getTiempoLlegada() {
@@ -66,14 +67,16 @@ public class Proceso {
         return tiempoSalida;
     }
 
+    // Establece el tiempo de salida
     public void setTiempoSalida(int tiempoSalida) {
-        this.tiempoSalida = tiempoSalida; // Establece el tiempo de salida
+        this.tiempoSalida = tiempoSalida; 
     }
 
     public int getPrioridad() {
         return prioridad;
     }
 
+    //De parte visual se ve esto
     @Override
     public String toString() {
         return "Proceso " + id + ", Aplicación = " + nombre + ", CPU = " + cpu + 
