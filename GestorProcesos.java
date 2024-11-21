@@ -35,6 +35,7 @@ public class GestorProcesos {
         };
         int index = 0;
 
+        //variables y su tipo
         while ((linea = reader.readLine()) != null) {
             String[] partes = linea.split(",");
             int id = Integer.parseInt(partes[0].trim());
